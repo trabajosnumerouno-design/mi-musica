@@ -1,4 +1,10 @@
+const SUPABASE_URL = "https://mqkoiyqaeyoiefeoxusy.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Il7ZpPjVF9nRWc6Him0uFg_AN59J6li";
+const BUCKET = "music";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
 const input=document.getElementById('fileInput');
+const uploadLabel=document.getElementById('uploadLabel');
 const library=document.getElementById('library');
 const audio=document.getElementById('audio');
 const play=document.getElementById('play');
@@ -7,91 +13,138 @@ const seek=document.getElementById('seek');
 const current=document.getElementById('current');
 const duration=document.getElementById('duration');
 const nowTitle=document.getElementById('nowTitle');
+const nowArtist=document.getElementById('nowArtist');
 const count=document.getElementById('count');
-let songs=[], index=-1;
+const statusBox=document.getElementById('status');
+let songs=[], index=-1, currentObjectUrl=null;
 
 const fmt=s=>{if(!isFinite(s))return"0:00";return Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0")};
+function escapeHtml(x){return String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function showStatus(msg,error=false){statusBox.textContent=msg;statusBox.classList.remove('hidden');statusBox.classList.toggle('error',error);if(!error)setTimeout(()=>statusBox.classList.add('hidden'),3500)}
+function setUploadEnabled(enabled){uploadLabel.style.opacity=enabled?'1':'.55';uploadLabel.style.pointerEvents=enabled?'auto':'none'}
 
-input.onchange=e=>{
-  [...e.target.files].forEach(file=>{
-    songs.push({file,url:URL.createObjectURL(file),title:file.name.replace(/\.[^/.]+$/,""),artist:"Archivo local"});
-  });
-  render(songs);
+async function getSession(){return (await supabaseClient.auth.getSession()).data.session}
+
+async function loadSongs(){
+  const session=await getSession();
+  if(!session){songs=[];render([]);setUploadEnabled(false);return}
+  setUploadEnabled(true);
+  const {data,error}=await supabaseClient.from('songs').select('*').order('created_at',{ascending:false});
+  if(error){showStatus('No se pudo cargar la biblioteca: '+error.message,true);return}
+  songs=data||[];render(songs);
+}
+
+input.onchange=async e=>{
+  const session=await getSession();
+  if(!session){alert('Primero inicia sesión.');input.value='';return}
+  const files=[...e.target.files];
+  if(!files.length)return;
+  for(const file of files){
+    if(!file.type.startsWith('audio/'))continue;
+    try{
+      showStatus('Subiendo '+file.name+'...');
+      const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const path=`${session.user.id}/${crypto.randomUUID()}-${safeName}`;
+      const upload=await supabaseClient.storage.from(BUCKET).upload(path,file,{contentType:file.type||'audio/mpeg',upsert:false});
+      if(upload.error)throw upload.error;
+      const insert=await supabaseClient.from('songs').insert({
+        user_id:session.user.id,
+        title:file.name.replace(/\.[^/.]+$/,''),
+        artist:'Mi biblioteca',
+        storage_path:path,
+        file_name:file.name,
+        mime_type:file.type||'audio/mpeg'
+      }).select().single();
+      if(insert.error){await supabaseClient.storage.from(BUCKET).remove([path]);throw insert.error}
+    }catch(err){showStatus('No se pudo subir '+file.name+': '+err.message,true)}
+  }
+  input.value='';
+  await loadSongs();
 };
 
 function render(list=songs){
-  count.textContent=`${songs.length} ${songs.length===1?"canción":"canciones"}`;
-  if(!list.length){library.innerHTML='<div class="empty">No se encontraron canciones.</div>';return}
-  library.innerHTML=list.map((s,i)=>`
+  count.textContent=`${list.length} ${list.length===1?'canción':'canciones'}`;
+  if(!list.length){library.innerHTML='<div class="empty">Todavía no hay canciones en tu cuenta. Usa “Subir música” para agregar una.</div>';return}
+  library.innerHTML=list.map(s=>`
     <div class="song">
       <div class="thumb">🎵</div>
-      <div><div class="song-title">${escapeHtml(s.title)}</div><div class="song-meta">${escapeHtml(s.artist)}</div></div>
-      <button onclick="playSong(${songs.indexOf(s)})">▶</button>
-      <a class="download" href="${s.url}" download="${escapeHtml(s.file.name)}"><button>⬇</button></a>
-    </div>`).join("");
+      <div><div class="song-title">${escapeHtml(s.title)}</div><div class="song-meta">${escapeHtml(s.artist||'Mi biblioteca')}</div></div>
+      <button onclick="playSongById('${s.id}')">▶</button>
+      <button class="download" onclick="downloadSongById('${s.id}')">⬇</button>
+    </div>`).join('');
 }
-function escapeHtml(x){return x.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
-function playSong(i){if(!songs[i])return;index=i;audio.src=songs[i].url;audio.play();nowTitle.textContent=songs[i].title;play.textContent="⏸"}
-play.onclick=()=>{if(index<0&&songs.length)playSong(0);else if(audio.paused){audio.play();play.textContent="⏸"}else{audio.pause();play.textContent="▶"}};
-document.getElementById('prev').onclick=()=>{if(songs.length)playSong((index-1+songs.length)%songs.length)};
-document.getElementById('next').onclick=()=>{if(songs.length)playSong((index+1)%songs.length)};
+
+async function playSongById(id){
+  const i=songs.findIndex(s=>s.id===id); if(i<0)return;
+  index=i;
+  const song=songs[i];
+  const {data,error}=await supabaseClient.storage.from(BUCKET).createSignedUrl(song.storage_path,3600);
+  if(error){showStatus('No se pudo reproducir la canción: '+error.message,true);return}
+  if(currentObjectUrl){URL.revokeObjectURL(currentObjectUrl);currentObjectUrl=null}
+  audio.src=data.signedUrl;
+  audio.play();
+  nowTitle.textContent=song.title;
+  nowArtist.textContent=song.artist||'Mi biblioteca';
+  play.textContent='⏸';
+}
+window.playSongById=playSongById;
+
+async function downloadSongById(id){
+  const song=songs.find(s=>s.id===id);if(!song)return;
+  const {data,error}=await supabaseClient.storage.from(BUCKET).createSignedUrl(song.storage_path,300);
+  if(error){showStatus('No se pudo preparar la descarga: '+error.message,true);return}
+  const a=document.createElement('a');a.href=data.signedUrl;a.download=song.file_name||song.title;a.target='_blank';document.body.appendChild(a);a.click();a.remove();
+}
+window.downloadSongById=downloadSongById;
+
+play.onclick=()=>{if(index<0&&songs.length)playSongById(songs[0].id);else if(audio.paused){audio.play();play.textContent='⏸'}else{audio.pause();play.textContent='▶'}};
+document.getElementById('prev').onclick=()=>{if(songs.length)playSongById(songs[(index-1+songs.length)%songs.length].id)};
+document.getElementById('next').onclick=()=>{if(songs.length)playSongById(songs[(index+1)%songs.length].id)};
 audio.ontimeupdate=()=>{seek.value=audio.duration?(audio.currentTime/audio.duration)*100:0;current.textContent=fmt(audio.currentTime);duration.textContent=fmt(audio.duration)};
 seek.oninput=()=>{if(audio.duration)audio.currentTime=(seek.value/100)*audio.duration};
 audio.onended=()=>document.getElementById('next').click();
-search.oninput=()=>{const q=search.value.toLowerCase();render(songs.filter(s=>s.title.toLowerCase().includes(q)))};
+search.oninput=()=>{const q=search.value.toLowerCase();render(songs.filter(s=>(s.title||'').toLowerCase().includes(q)||(s.artist||'').toLowerCase().includes(q)))};
 
-
-// Supabase authentication
-const SUPABASE_URL = "https://mqkoiyqaeyoiefeoxusy.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Il7ZpPjVF9nRWc6Him0uFg_AN59J6li";
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-
-const authPanel=document.getElementById("authPanel");
-const accountBtn=document.getElementById("accountBtn");
-const closeAuth=document.getElementById("closeAuth");
-const authSubmit=document.getElementById("authSubmit");
-const switchAuth=document.getElementById("switchAuth");
-const authTitle=document.getElementById("authTitle");
-const authMessage=document.getElementById("authMessage");
-const userEmail=document.getElementById("userEmail");
+const authPanel=document.getElementById('authPanel');
+const accountBtn=document.getElementById('accountBtn');
+const closeAuth=document.getElementById('closeAuth');
+const authSubmit=document.getElementById('authSubmit');
+const switchAuth=document.getElementById('switchAuth');
+const authTitle=document.getElementById('authTitle');
+const authMessage=document.getElementById('authMessage');
+const userEmail=document.getElementById('userEmail');
 let signUpMode=false;
 
 accountBtn.onclick=async()=>{
-  const {data:{session}}=await supabaseClient.auth.getSession();
-  if(session){ await supabaseClient.auth.signOut(); updateAccount(); }
-  else authPanel.classList.remove("hidden");
+  const session=await getSession();
+  if(session){await supabaseClient.auth.signOut();updateAccount();loadSongs()}
+  else authPanel.classList.remove('hidden');
 };
-closeAuth.onclick=()=>authPanel.classList.add("hidden");
+closeAuth.onclick=()=>authPanel.classList.add('hidden');
 switchAuth.onclick=()=>{
   signUpMode=!signUpMode;
-  authTitle.textContent=signUpMode?"Crear cuenta":"Iniciar sesión";
-  authSubmit.textContent=signUpMode?"Registrarme":"Iniciar sesión";
-  switchAuth.textContent=signUpMode?"Ya tengo una cuenta":"Crear cuenta";
-  authMessage.textContent=signUpMode?"Crea una cuenta para usar tu biblioteca.":"Accede a tu biblioteca de Mi Música.";
+  authTitle.textContent=signUpMode?'Crear cuenta':'Iniciar sesión';
+  authSubmit.textContent=signUpMode?'Registrarme':'Iniciar sesión';
+  switchAuth.textContent=signUpMode?'Ya tengo una cuenta':'Crear cuenta';
+  authMessage.textContent=signUpMode?'Crea una cuenta para usar tu biblioteca.':'Accede a tu biblioteca de Mi Música.';
 };
 
 authSubmit.onclick=async()=>{
-  const email=document.getElementById("email").value.trim();
-  const password=document.getElementById("password").value;
-  if(!email||password.length<6){alert("Escribe un correo y una contraseña de al menos 6 caracteres.");return}
-  let result;
-  if(signUpMode) result=await supabaseClient.auth.signUp({email,password});
-  else result=await supabaseClient.auth.signInWithPassword({email,password});
+  const email=document.getElementById('email').value.trim();
+  const password=document.getElementById('password').value;
+  if(!email||password.length<6){alert('Escribe un correo y una contraseña de al menos 6 caracteres.');return}
+  let result=signUpMode?await supabaseClient.auth.signUp({email,password}):await supabaseClient.auth.signInWithPassword({email,password});
   if(result.error){alert(result.error.message);return}
-  if(signUpMode){alert("Cuenta creada. Si Supabase pide confirmar tu correo, revisa tu bandeja de entrada.");}
-  authPanel.classList.add("hidden");
-  updateAccount();
+  if(signUpMode&&!result.data.session){alert('Cuenta creada. Revisa tu correo si Supabase solicita confirmación.');}
+  authPanel.classList.add('hidden');
+  await updateAccount();
+  await loadSongs();
 };
 
 async function updateAccount(){
-  const {data:{session}}=await supabaseClient.auth.getSession();
-  if(session){
-    userEmail.textContent=session.user.email||"Usuario";
-    accountBtn.textContent="Cerrar sesión";
-  }else{
-    userEmail.textContent="Invitado";
-    accountBtn.textContent="Iniciar sesión";
-  }
+  const session=await getSession();
+  if(session){userEmail.textContent=session.user.email||'Usuario';accountBtn.textContent='Cerrar sesión';setUploadEnabled(true)}
+  else{userEmail.textContent='Invitado';accountBtn.textContent='Iniciar sesión';setUploadEnabled(false)}
 }
-supabaseClient.auth.onAuthStateChange(()=>updateAccount());
-updateAccount();
+supabaseClient.auth.onAuthStateChange(()=>{updateAccount();loadSongs()});
+(async()=>{await updateAccount();await loadSongs()})();

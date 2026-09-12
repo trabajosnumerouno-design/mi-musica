@@ -14,11 +14,11 @@
     <button class="nav">❤️ Favoritos</button>
     <button class="nav">📚 Mis playlists</button>
     <hr>
-    <label class="upload-btn">
+    <label class="upload-btn" id="uploadLabel">
       ⬆️ Subir música
       <input id="fileInput" type="file" accept="audio/*" multiple hidden>
     </label>
-    <p class="small">Sube música que tengas derecho a compartir.</p>
+    <p class="small">Sube solamente música que tengas derecho a compartir.</p>
   </aside>
 
   <main>
@@ -46,7 +46,7 @@
       <div>
         <p>REPOSITORIO MUSICAL</p>
         <h2>Tu música,<br>en un solo lugar.</h2>
-        <p>Reproduce tus archivos y crea tu biblioteca personal.</p>
+        <p>Ahora tus canciones pueden quedar guardadas en tu cuenta.</p>
       </div>
       <div class="hero-icon">🎧</div>
     </section>
@@ -56,8 +56,9 @@
         <h2>Biblioteca</h2>
         <span id="count">0 canciones</span>
       </div>
+      <div id="status" class="status hidden"></div>
       <div id="library" class="library">
-        <div class="empty">Todavía no hay canciones. Usa “Subir música” para agregar una.</div>
+        <div class="empty">Inicia sesión para ver tu biblioteca.</div>
       </div>
     </section>
   </main>

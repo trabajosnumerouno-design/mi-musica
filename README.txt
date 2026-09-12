@@ -1,32 +1,12 @@
-MI MUSICA - PROTOTIPO
+MI MÚSICA - VERSIÓN CON CUENTAS Y ALMACENAMIENTO EN LÍNEA
 
-Esta es una primera versión funcional de un repositorio musical local.
+1. En Supabase abre SQL Editor > New query.
+2. Copia TODO el contenido de supabase_setup.sql, ejecútalo y espera a que termine sin errores.
+3. En GitHub, reemplaza index.html, app.js y style.css por los de esta carpeta.
+4. No subas el ZIP: sube los archivos extraídos.
+5. Espera a que GitHub Pages publique los cambios.
+6. Abre tu sitio, inicia sesión y prueba "Subir música".
 
-Incluye:
-- Carga de archivos de audio desde el navegador.
-- Biblioteca de canciones.
-- Búsqueda.
-- Reproductor.
-- Anterior / siguiente.
-- Barra de progreso.
-- Descarga de los archivos cargados.
+Esta versión guarda las canciones de cada usuario en un bucket privado de Supabase y guarda sus datos en la tabla songs. Los usuarios solo pueden consultar sus propias canciones.
 
-IMPORTANTE:
-Esta versión NO tiene servidor ni cuentas. Los archivos permanecen en el navegador y se pierden al cerrar/recargar según el navegador.
-
-Siguiente etapa recomendada:
-1. Backend con Node.js.
-2. Base de datos PostgreSQL.
-3. Cuentas de usuarios.
-4. Almacenamiento de archivos en la nube.
-5. Subida de portadas y metadatos.
-6. Playlists y favoritos.
-7. Control de permisos para que solo se descargue contenido autorizado.
-
-Para probarla:
-Abre index.html en un navegador moderno y pulsa "Subir música".
-
-
-VERSIÓN CON CUENTAS
-Esta versión conecta el inicio de sesión/registro con Supabase.
-La contraseña no se guarda en el código: Supabase Auth la administra.
+IMPORTANTE: sube solamente audio que tengas derecho o autorización para compartir. Esta versión es una biblioteca personal; antes de convertirla en un repositorio público conviene añadir reportes, moderación, términos y un proceso de retirada de contenido.
