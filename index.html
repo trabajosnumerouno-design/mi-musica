@@ -2,12 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#101010">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mi Música</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -29,7 +24,23 @@
   <main>
     <header>
       <input id="search" type="search" placeholder="¿Qué quieres escuchar?">
+      <div class="account">
+        <span id="userEmail">Invitado</span>
+        <button id="accountBtn">Iniciar sesión</button>
+      </div>
     </header>
+
+    <div id="authPanel" class="auth-panel hidden">
+      <div class="auth-card">
+        <button id="closeAuth" class="close">✕</button>
+        <h2 id="authTitle">Iniciar sesión</h2>
+        <p id="authMessage">Accede a tu biblioteca de Mi Música.</p>
+        <input id="email" type="email" placeholder="Correo electrónico" autocomplete="email">
+        <input id="password" type="password" placeholder="Contraseña" autocomplete="current-password">
+        <button id="authSubmit" class="primary">Iniciar sesión</button>
+        <button id="switchAuth" class="secondary">Crear cuenta</button>
+      </div>
+    </div>
 
     <section class="hero">
       <div>
@@ -72,11 +83,7 @@
   </footer>
 
   <audio id="audio"></audio>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
-    }
-  </script>
 </body>
 </html>

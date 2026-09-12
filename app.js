@@ -39,3 +39,59 @@ audio.ontimeupdate=()=>{seek.value=audio.duration?(audio.currentTime/audio.durat
 seek.oninput=()=>{if(audio.duration)audio.currentTime=(seek.value/100)*audio.duration};
 audio.onended=()=>document.getElementById('next').click();
 search.oninput=()=>{const q=search.value.toLowerCase();render(songs.filter(s=>s.title.toLowerCase().includes(q)))};
+
+
+// Supabase authentication
+const SUPABASE_URL = "https://mqkoiyqaeyoiefeoxusy.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Il7ZpPjVF9nRWc6Him0uFg_AN59J6li";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const authPanel=document.getElementById("authPanel");
+const accountBtn=document.getElementById("accountBtn");
+const closeAuth=document.getElementById("closeAuth");
+const authSubmit=document.getElementById("authSubmit");
+const switchAuth=document.getElementById("switchAuth");
+const authTitle=document.getElementById("authTitle");
+const authMessage=document.getElementById("authMessage");
+const userEmail=document.getElementById("userEmail");
+let signUpMode=false;
+
+accountBtn.onclick=async()=>{
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  if(session){ await supabaseClient.auth.signOut(); updateAccount(); }
+  else authPanel.classList.remove("hidden");
+};
+closeAuth.onclick=()=>authPanel.classList.add("hidden");
+switchAuth.onclick=()=>{
+  signUpMode=!signUpMode;
+  authTitle.textContent=signUpMode?"Crear cuenta":"Iniciar sesión";
+  authSubmit.textContent=signUpMode?"Registrarme":"Iniciar sesión";
+  switchAuth.textContent=signUpMode?"Ya tengo una cuenta":"Crear cuenta";
+  authMessage.textContent=signUpMode?"Crea una cuenta para usar tu biblioteca.":"Accede a tu biblioteca de Mi Música.";
+};
+
+authSubmit.onclick=async()=>{
+  const email=document.getElementById("email").value.trim();
+  const password=document.getElementById("password").value;
+  if(!email||password.length<6){alert("Escribe un correo y una contraseña de al menos 6 caracteres.");return}
+  let result;
+  if(signUpMode) result=await supabaseClient.auth.signUp({email,password});
+  else result=await supabaseClient.auth.signInWithPassword({email,password});
+  if(result.error){alert(result.error.message);return}
+  if(signUpMode){alert("Cuenta creada. Si Supabase pide confirmar tu correo, revisa tu bandeja de entrada.");}
+  authPanel.classList.add("hidden");
+  updateAccount();
+};
+
+async function updateAccount(){
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  if(session){
+    userEmail.textContent=session.user.email||"Usuario";
+    accountBtn.textContent="Cerrar sesión";
+  }else{
+    userEmail.textContent="Invitado";
+    accountBtn.textContent="Iniciar sesión";
+  }
+}
+supabaseClient.auth.onAuthStateChange(()=>updateAccount());
+updateAccount();

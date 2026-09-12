@@ -27,9 +27,6 @@ Para probarla:
 Abre index.html en un navegador moderno y pulsa "Subir música".
 
 
-VERSIÓN MÓVIL / PWA
-Esta versión puede instalarse como aplicación web desde Chrome/Edge cuando esté publicada en HTTPS.
-Para probarla en el teléfono:
-1. Publica la carpeta en un servicio de hosting estático.
-2. Abre la dirección HTTPS en el teléfono.
-3. En Chrome usa "Instalar aplicación" o "Añadir a pantalla de inicio".
+VERSIÓN CON CUENTAS
+Esta versión conecta el inicio de sesión/registro con Supabase.
+La contraseña no se guarda en el código: Supabase Auth la administra.
