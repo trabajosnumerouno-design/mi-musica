@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#101010">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <title>Mi Música</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <aside>
+    <h1>🎵 Mi Música</h1>
+    <button class="nav active">🏠 Inicio</button>
+    <button class="nav">🔎 Buscar</button>
+    <button class="nav">❤️ Favoritos</button>
+    <button class="nav">📚 Mis playlists</button>
+    <hr>
+    <label class="upload-btn">
+      ⬆️ Subir música
+      <input id="fileInput" type="file" accept="audio/*" multiple hidden>
+    </label>
+    <p class="small">Sube música que tengas derecho a compartir.</p>
+  </aside>
+
+  <main>
+    <header>
+      <input id="search" type="search" placeholder="¿Qué quieres escuchar?">
+    </header>
+
+    <section class="hero">
+      <div>
+        <p>REPOSITORIO MUSICAL</p>
+        <h2>Tu música,<br>en un solo lugar.</h2>
+        <p>Reproduce tus archivos y crea tu biblioteca personal.</p>
+      </div>
+      <div class="hero-icon">🎧</div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Biblioteca</h2>
+        <span id="count">0 canciones</span>
+      </div>
+      <div id="library" class="library">
+        <div class="empty">Todavía no hay canciones. Usa “Subir música” para agregar una.</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="player">
+    <div class="now">
+      <div id="cover">🎵</div>
+      <div>
+        <strong id="nowTitle">Nada reproduciéndose</strong>
+        <span id="nowArtist">Mi biblioteca</span>
+      </div>
+    </div>
+    <div class="controls">
+      <button id="prev">⏮</button>
+      <button id="play">▶</button>
+      <button id="next">⏭</button>
+    </div>
+    <div class="progress">
+      <span id="current">0:00</span>
+      <input id="seek" type="range" min="0" max="100" value="0">
+      <span id="duration">0:00</span>
+    </div>
+  </footer>
+
+  <audio id="audio"></audio>
+  <script src="app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
+    }
+  </script>
+</body>
+</html>
