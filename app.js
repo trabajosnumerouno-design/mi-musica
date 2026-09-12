@@ -4,6 +4,9 @@ const BUCKET = "music";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const input=document.getElementById('fileInput');
+const coverInput=document.getElementById('coverInput');
+const chooseCover=document.getElementById('chooseCover');
+const coverName=document.getElementById('coverName');
 const uploadLabel=document.getElementById('uploadLabel');
 const library=document.getElementById('library');
 const audio=document.getElementById('audio');
@@ -14,16 +17,20 @@ const current=document.getElementById('current');
 const duration=document.getElementById('duration');
 const nowTitle=document.getElementById('nowTitle');
 const nowArtist=document.getElementById('nowArtist');
+const nowCover=document.getElementById('cover');
 const count=document.getElementById('count');
 const statusBox=document.getElementById('status');
-let songs=[], index=-1, currentObjectUrl=null;
+let songs=[], index=-1, currentObjectUrl=null, selectedCover=null;
 
 const fmt=s=>{if(!isFinite(s))return"0:00";return Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0")};
 function escapeHtml(x){return String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function showStatus(msg,error=false){statusBox.textContent=msg;statusBox.classList.remove('hidden');statusBox.classList.toggle('error',error);if(!error)setTimeout(()=>statusBox.classList.add('hidden'),3500)}
-function setUploadEnabled(enabled){uploadLabel.style.opacity=enabled?'1':'.55';uploadLabel.style.pointerEvents=enabled?'auto':'none'}
+function setUploadEnabled(enabled){uploadLabel.style.opacity=enabled?'1':'.55';uploadLabel.style.pointerEvents=enabled?'auto':'none';chooseCover.disabled=!enabled;chooseCover.style.opacity=enabled?'1':'.55'}
 
 async function getSession(){return (await supabaseClient.auth.getSession()).data.session}
+
+chooseCover.onclick=()=>coverInput.click();
+coverInput.onchange=()=>{selectedCover=coverInput.files?.[0]||null;coverName.textContent=selectedCover?selectedCover.name:'Portada opcional'};
 
 async function loadSongs(){
   const session=await getSession();
@@ -47,31 +54,66 @@ input.onchange=async e=>{
       const path=`${session.user.id}/${crypto.randomUUID()}-${safeName}`;
       const upload=await supabaseClient.storage.from(BUCKET).upload(path,file,{contentType:file.type||'audio/mpeg',upsert:false});
       if(upload.error)throw upload.error;
+
+      let coverPath=null, coverMime=null;
+      if(selectedCover){
+        if(!selectedCover.type.startsWith('image/'))throw new Error('La portada debe ser una imagen.');
+        const safeCover=selectedCover.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+        coverPath=`${session.user.id}/covers/${crypto.randomUUID()}-${safeCover}`;
+        const coverUpload=await supabaseClient.storage.from(BUCKET).upload(coverPath,selectedCover,{contentType:selectedCover.type,upsert:false});
+        if(coverUpload.error)throw coverUpload.error;
+        coverMime=selectedCover.type;
+      }
+
       const insert=await supabaseClient.from('songs').insert({
         user_id:session.user.id,
         title:file.name.replace(/\.[^/.]+$/,''),
         artist:'Mi biblioteca',
         storage_path:path,
         file_name:file.name,
-        mime_type:file.type||'audio/mpeg'
+        mime_type:file.type||'audio/mpeg',
+        cover_path:coverPath,
+        cover_mime_type:coverMime
       }).select().single();
-      if(insert.error){await supabaseClient.storage.from(BUCKET).remove([path]);throw insert.error}
+
+      if(insert.error){
+        await supabaseClient.storage.from(BUCKET).remove([path]);
+        if(coverPath)await supabaseClient.storage.from(BUCKET).remove([coverPath]);
+        throw insert.error;
+      }
     }catch(err){showStatus('No se pudo subir '+file.name+': '+err.message,true)}
   }
   input.value='';
+  selectedCover=null;
+  coverInput.value='';
+  coverName.textContent='Portada opcional';
   await loadSongs();
 };
 
-function render(list=songs){
+async function getCoverUrl(song){
+  if(!song.cover_path)return null;
+  const {data,error}=await supabaseClient.storage.from(BUCKET).createSignedUrl(song.cover_path,3600);
+  return error?null:data?.signedUrl||null;
+}
+
+async function render(list=songs){
   count.textContent=`${list.length} ${list.length===1?'canción':'canciones'}`;
   if(!list.length){library.innerHTML='<div class="empty">Todavía no hay canciones en tu cuenta. Usa “Subir música” para agregar una.</div>';return}
   library.innerHTML=list.map(s=>`
     <div class="song">
-      <div class="thumb">🎵</div>
+      <div class="thumb" id="thumb-${s.id}">🎵</div>
       <div><div class="song-title">${escapeHtml(s.title)}</div><div class="song-meta">${escapeHtml(s.artist||'Mi biblioteca')}</div></div>
       <button onclick="playSongById('${s.id}')">▶</button>
       <button class="download" onclick="downloadSongById('${s.id}')">⬇</button>
     </div>`).join('');
+
+  await Promise.all(list.map(async s=>{
+    const url=await getCoverUrl(s);
+    if(url){
+      const el=document.getElementById('thumb-'+s.id);
+      if(el)el.innerHTML=`<img src="${url}" alt="Portada de ${escapeHtml(s.title)}">`;
+    }
+  }));
 }
 
 async function playSongById(id){
@@ -85,6 +127,8 @@ async function playSongById(id){
   audio.play();
   nowTitle.textContent=song.title;
   nowArtist.textContent=song.artist||'Mi biblioteca';
+  const coverUrl=await getCoverUrl(song);
+  nowCover.innerHTML=coverUrl?`<img src="${coverUrl}" alt="Portada">`:'🎵';
   play.textContent='⏸';
 }
 window.playSongById=playSongById;
