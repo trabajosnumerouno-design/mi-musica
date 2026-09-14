@@ -72,9 +72,15 @@
       </div>
     </div>
     <div class="controls">
-      <button id="prev">⏮</button>
-      <button id="play">▶</button>
-      <button id="next">⏭</button>
+      <button id="shuffle" title="Aleatorio">🔀</button>
+      <button id="prev" title="Anterior">⏮</button>
+      <button id="play" title="Reproducir/Pausar">▶</button>
+      <button id="next" title="Siguiente">⏭</button>
+      <button id="repeat" title="Repetir">🔁</button>
+    </div>
+    <div class="volume-control">
+      <button id="mute" title="Silenciar">🔊</button>
+      <input id="volume" type="range" min="0" max="1" step="0.01" value="1" title="Volumen">
     </div>
     <div class="progress">
       <span id="current">0:00</span>
