@@ -3,7 +3,7 @@ const SUPABASE_PUBLISHABLE_KEY="sb_publishable_Il7ZpPjVF9nRWc6Him0uFg_AN59J6li";
 const BUCKET="music";
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 const $=id=>document.getElementById(id);
-const input=$("fileInput"),library=$("library"),audio=$("audio"),play=$("play"),search=$("search"),seek=$("seek"),current=$("current"),duration=$("duration"),nowTitle=$("nowTitle"),nowArtist=$("nowArtist"),nowCover=$("cover"),count=$("count"),statusBox=$("status");
+const input=$("fileInput"),uploadAudio=$("uploadAudio"),uploadCover=$("uploadCover"),uploadTitle=$("uploadTitle"),uploadArtist=$("uploadArtist"),coverPreview=$("coverPreview"),library=$("library"),audio=$("audio"),play=$("play"),search=$("search"),seek=$("seek"),current=$("current"),duration=$("duration"),nowTitle=$("nowTitle"),nowArtist=$("nowArtist"),nowCover=$("cover"),count=$("count"),statusBox=$("status");
 let songs=[],index=-1,favorites=new Set(),playlists=[],currentView="home",shuffleMode=false,repeatMode=false,selectedEditId=null,selectedPlaylistSongId=null;
 const fmt=s=>!isFinite(s)?"0:00":Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
 function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
@@ -43,9 +43,42 @@ $("createPlaylist").onclick=async()=>{if(!requireLogin())return;const name=$("pl
 $("saveEdit").onclick=async()=>{if(!selectedEditId)return;const title=$("editTitle").value.trim(),artist=$("editArtist").value.trim();if(!title)return alert("Escribe un título.");const r=await supabaseClient.from("songs").update({title,artist:artist||"Mi biblioteca"}).eq("id",selectedEditId);if(r.error){alert(r.error.message);return}$("editModal").classList.add("hidden");await loadSongs();status("Canción actualizada.")};
 $("closeEdit").onclick=()=>$("editModal").classList.add("hidden");$("closePlaylist").onclick=()=>$("playlistModal").classList.add("hidden");
 $("newPlaylistBtn").onclick=openPlaylistModal;
-$("heroUpload").onclick=()=>input.click();
-input.onchange=async e=>{const s=await session();if(!s){alert("Primero inicia sesión.");input.value="";return}const files=[...e.target.files];for(const file of files){if(!file.type.startsWith("audio/"))continue;try{status("Subiendo "+file.name+"...");const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"_"),path=`${s.user.id}/${crypto.randomUUID()}-${safe}`;let r=await supabaseClient.storage.from(BUCKET).upload(path,file,{contentType:file.type||"audio/mpeg",upsert:false});if(r.error)throw r.error; r=await supabaseClient.from("songs").insert({user_id:s.user.id,title:file.name.replace(/\.[^/.]+$/,""),artist:"Mi biblioteca",storage_path:path,file_name:file.name,mime_type:file.type||"audio/mpeg"});if(r.error){await supabaseClient.storage.from(BUCKET).remove([path]);throw r.error}}catch(err){status("No se pudo subir "+file.name+": "+err.message,true)}}input.value="";await loadSongs()};
-$("search").oninput=()=>{currentView="search";setNav("search");renderSongs(filterSongs(search.value),"Resultados de búsqueda","Busca por título o artista")};
+function resetUploadForm(){
+  if(uploadAudio)uploadAudio.value="";
+  if(uploadCover)uploadCover.value="";
+  if(uploadTitle)uploadTitle.value="";
+  if(uploadArtist)uploadArtist.value="";
+  if(coverPreview){coverPreview.innerHTML="";coverPreview.classList.add("hidden");}
+  const p=$("uploadProgress");if(p){p.textContent="";p.classList.add("hidden");p.classList.remove("error");}
+}
+function openUploadModal(){if(!requireLogin())return;resetUploadForm();$("uploadModal").classList.remove("hidden");}
+function closeUploadModal(){$("uploadModal").classList.add("hidden");resetUploadForm();}
+window.openUploadModal=openUploadModal;
+$("heroUpload").onclick=openUploadModal;
+$("uploadLabel").onclick=e=>{e.preventDefault();openUploadModal()};
+$("closeUpload").onclick=closeUploadModal;
+$("cancelUpload").onclick=closeUploadModal;
+if(uploadCover)uploadCover.onchange=()=>{const file=uploadCover.files?.[0];if(!file){coverPreview.innerHTML="";coverPreview.classList.add("hidden");return}const url=URL.createObjectURL(file);coverPreview.innerHTML=`<img src="${url}" alt="Vista previa de portada"><span>Portada seleccionada</span>`;coverPreview.classList.remove("hidden")};
+if(uploadAudio)uploadAudio.onchange=()=>{const file=uploadAudio.files?.[0];if(file&&!uploadTitle.value)uploadTitle.value=file.name.replace(/\.[^/.]+$/,'')};
+$("confirmUpload").onclick=async()=>{
+  const s=await session();if(!s){alert("Primero inicia sesión.");return}
+  const audioFile=uploadAudio?.files?.[0],coverFile=uploadCover?.files?.[0];
+  if(!audioFile){alert("Selecciona un archivo de música.");return}
+  if(!audioFile.type.startsWith("audio/")){alert("El archivo de música no es válido.");return}
+  const title=(uploadTitle.value||audioFile.name.replace(/\.[^/.]+$/,'')).trim()||"Sin título";
+  const artist=(uploadArtist.value||"Mi biblioteca").trim()||"Mi biblioteca";
+  const progress=$("uploadProgress"),btn=$("confirmUpload");btn.disabled=true;progress.textContent="Subiendo música...";progress.classList.remove("hidden","error");
+  try{
+    const safe=audioFile.name.replace(/[^a-zA-Z0-9._-]/g,"_"),base=`${s.user.id}/${crypto.randomUUID()}`,path=`${base}-${safe}`;
+    let r=await supabaseClient.storage.from(BUCKET).upload(path,audioFile,{contentType:audioFile.type||"audio/mpeg",upsert:false});if(r.error)throw r.error;
+    let coverPath=null,coverMime=null;
+    if(coverFile){if(!coverFile.type.startsWith("image/"))throw new Error("La portada debe ser una imagen.");const coverSafe=coverFile.name.replace(/[^a-zA-Z0-9._-]/g,"_");coverPath=`${s.user.id}/covers/${crypto.randomUUID()}-${coverSafe}`;r=await supabaseClient.storage.from(BUCKET).upload(coverPath,coverFile,{contentType:coverFile.type,upsert:false});if(r.error){await supabaseClient.storage.from(BUCKET).remove([path]);throw r.error}coverMime=coverFile.type}
+    r=await supabaseClient.from("songs").insert({user_id:s.user.id,title,artist,storage_path:path,file_name:audioFile.name,mime_type:audioFile.type||"audio/mpeg",cover_path:coverPath,cover_mime_type:coverMime});
+    if(r.error){await supabaseClient.storage.from(BUCKET).remove([path,...(coverPath?[coverPath]:[])]);throw r.error}
+    progress.textContent=coverPath?"¡Canción y portada subidas!":"¡Canción subida!";setTimeout(closeUploadModal,700);await loadSongs();
+  }catch(err){progress.textContent="No se pudo subir: "+err.message;progress.classList.add("error")}finally{btn.disabled=false}
+};
+
 function setNav(view){document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.view===view))}
 document.querySelectorAll(".nav").forEach(b=>b.onclick=async()=>{const v=b.dataset.view;currentView=v;setNav(v);$("homeView").classList.toggle("hidden",v!=="home");$("contentView").classList.toggle("hidden",v==="profile");$("profileView").classList.toggle("hidden",v!=="profile");if(v==="home")renderCurrent();else if(v==="search"){search.focus();renderSongs(filterSongs(search.value),"Resultados de búsqueda","Busca por título o artista")}else if(v==="favorites")await renderFavorites();else if(v==="playlists")await renderPlaylists();else if(v==="profile")updateProfile()});
 async function updateStats(){$("statSongs").textContent=songs.length;$("statFavs").textContent=favorites.size;$("statPlaylists").textContent=playlists.length}
