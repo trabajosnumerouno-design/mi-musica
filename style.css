@@ -13,6 +13,23 @@
 .close{position:absolute;right:15px;top:12px;background:none;border:0;color:#aaa;font-size:18px}
 @media(max-width:750px){.account{float:none;margin:10px 0 0}.account span{max-width:130px}header{display:block}}
 
-.cover-btn{display:block;width:100%;border:0;background:#292929;color:#fff;text-align:left;padding:10px 12px;border-radius:8px;font-size:13px;cursor:pointer;margin:8px 0}
-.cover-btn:hover{background:#333}.cover-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.thumb img,.now #cover img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+/* Reproductor mejorado */
+.controls{display:flex;align-items:center;justify-content:center;gap:6px}
+.controls button{margin:0!important;min-width:34px}
+.controls button.active{opacity:.55;transform:scale(1.08)}
+#volume{width:90px}
+#mute{font-size:16px!important}
+.now #cover img,.thumb img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+@media(max-width:750px){
+  .controls{gap:2px}
+  .controls button{font-size:16px!important;min-width:28px}
+  .controls #play{width:40px;height:40px}
+  #volume{display:none}
+  .progress{display:flex}
+  .progress input#seek{width:100%}
+  .progress #mute{display:none}
+  .player{grid-template-columns:1fr auto;height:92px;padding:8px 12px}
+  .now{min-width:0}
+  .now>div:last-child{min-width:0}
+  .now strong,.now span{display:block;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}

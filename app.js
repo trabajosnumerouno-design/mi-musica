@@ -147,11 +147,70 @@ document.querySelectorAll(".nav").forEach(btn=>btn.addEventListener("click",asyn
 
 if(search)search.oninput=()=>{currentView="search";renderSongs(filterSongs(search.value),"Resultados de búsqueda");};
 if(play)play.onclick=async()=>{if(index<0&&songs.length)await playSongById(songs[0].id);else if(audio.paused){await audio.play();}else audio.pause();};
-if($("prev"))$("prev").onclick=()=>songs.length&&playSongById(songs[(index-1+songs.length)%songs.length].id);
-if($("next"))$("next").onclick=()=>songs.length&&playSongById(songs[(index+1)%songs.length].id);
+if($("prev"))$("prev").onclick=previousTrack;
+if($("next"))$("next").onclick=nextTrack;
 audio.ontimeupdate=()=>{if(seek)seek.value=audio.duration?(audio.currentTime/audio.duration)*100:0;if(current)current.textContent=fmt(audio.currentTime);if(duration)duration.textContent=fmt(audio.duration);};
-audio.onended=()=>$("next")?.click();audio.onplay=()=>{if(play)play.textContent="⏸";};audio.onpause=()=>{if(play)play.textContent="▶";};
+audio.onended=()=>{ if (!repeatMode) nextTrack(); };audio.onplay=()=>{if(play)play.textContent="⏸";};audio.onpause=()=>{if(play)play.textContent="▶";};
 if(seek)seek.oninput=()=>{if(audio.duration)audio.currentTime=(seek.value/100)*audio.duration;};
+
+
+let shuffleMode = false;
+let repeatMode = false;
+const shuffleBtn = $("shuffle");
+const repeatBtn = $("repeat");
+const muteBtn = $("mute");
+const volume = $("volume");
+
+if (audio) audio.volume = 1;
+
+if (shuffleBtn) {
+  shuffleBtn.onclick = () => {
+    shuffleMode = !shuffleMode;
+    shuffleBtn.classList.toggle("active", shuffleMode);
+    status(shuffleMode ? "Modo aleatorio activado." : "Modo aleatorio desactivado.");
+  };
+}
+
+if (repeatBtn) {
+  repeatBtn.onclick = () => {
+    repeatMode = !repeatMode;
+    repeatBtn.classList.toggle("active", repeatMode);
+    audio.loop = repeatMode;
+    status(repeatMode ? "Repetición activada." : "Repetición desactivada.");
+  };
+}
+
+if (muteBtn) {
+  muteBtn.onclick = () => {
+    audio.muted = !audio.muted;
+    muteBtn.textContent = audio.muted ? "🔇" : "🔊";
+  };
+}
+
+if (volume) {
+  volume.oninput = () => {
+    audio.volume = Number(volume.value);
+    audio.muted = audio.volume === 0;
+    if (muteBtn) muteBtn.textContent = audio.muted ? "🔇" : "🔊";
+  };
+}
+
+async function nextTrack() {
+  if (!songs.length) return;
+  if (shuffleMode && songs.length > 1) {
+    let n = index;
+    while (n === index) n = Math.floor(Math.random() * songs.length);
+    await playSongById(songs[n].id);
+  } else {
+    await playSongById(songs[(index + 1) % songs.length].id);
+  }
+}
+
+async function previousTrack() {
+  if (!songs.length) return;
+  await playSongById(songs[(index - 1 + songs.length) % songs.length].id);
+}
+
 
 const authPanel=$("authPanel"),accountBtn=$("accountBtn"),closeAuth=$("closeAuth"),authSubmit=$("authSubmit"),switchAuth=$("switchAuth"),authTitle=$("authTitle"),authMessage=$("authMessage"),userEmail=$("userEmail");
 let signUpMode=false;
