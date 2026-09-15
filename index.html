@@ -2,7 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#101010"><meta name="description" content="Mi Música: biblioteca musical personal.">
+<meta name="theme-color" content="#0d0d0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mi Música">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon-192.png"><meta name="description" content="Mi Música: biblioteca musical personal.">
 <title>Mi Música</title><link rel="stylesheet" href="style.css?v=20260916">
 </head>
 <body>
@@ -23,7 +30,7 @@
 <header>
   <div class="mobile-brand">🎵 Mi Música</div>
   <div class="search-wrap">🔎 <input id="search" type="search" placeholder="¿Qué quieres escuchar?"></div>
-  <div class="account"><span id="userEmail">Invitado</span><button id="accountBtn">Iniciar sesión</button></div>
+  <div class="account"><span id="userEmail">Invitado</span><button id="installApp" class="secondary small-btn hidden" type="button">📲 Instalar</button><button id="accountBtn">Iniciar sesión</button></div>
 </header>
 <div id="authPanel" class="modal hidden"><div class="card auth-card"><button id="closeAuth" class="close">✕</button><h2 id="authTitle">Iniciar sesión</h2><p id="authMessage">Accede a tu biblioteca de Mi Música.</p><input id="email" type="email" placeholder="Correo electrónico" autocomplete="email"><input id="password" type="password" placeholder="Contraseña" autocomplete="current-password"><button id="authSubmit" class="primary">Iniciar sesión</button><button id="switchAuth" class="secondary">Crear cuenta</button></div></div>
 <div id="playlistModal" class="modal hidden"><div class="card"><button id="closePlaylist" class="close">✕</button><h2>Crear playlist</h2><p>Ponle un nombre a tu playlist.</p><input id="playlistName" type="text" maxlength="60" placeholder="Ej. Para estudiar"><button id="createPlaylist" class="primary">Crear playlist</button></div></div>
@@ -52,4 +59,11 @@
 </footer>
 <audio id="audio" preload="metadata"></audio>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=20260916"></script>
+<script>
+if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+let deferredInstallPrompt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstallPrompt = e; const b=document.getElementById("installApp"); if(b) b.classList.remove("hidden"); });
+window.addEventListener("appinstalled", () => { deferredInstallPrompt=null; const b=document.getElementById("installApp"); if(b) b.classList.add("hidden"); });
+document.getElementById("installApp")?.addEventListener("click", async () => { if(!deferredInstallPrompt) return; deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; deferredInstallPrompt=null; document.getElementById("installApp")?.classList.add("hidden"); });
+</script>
 </body></html>

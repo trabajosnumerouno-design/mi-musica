@@ -323,3 +323,7 @@ body::before {
     transition: none !important;
   }
 }
+
+/* PWA install control */
+#installApp{white-space:nowrap}
+@media(max-width:650px){#installApp{padding:8px 10px!important;font-size:12px}}
