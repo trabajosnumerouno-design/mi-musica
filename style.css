@@ -33,3 +33,79 @@ body.audio-playing .player{box-shadow:0 -15px 40px rgba(0,0,0,.25),0 0 calc(8px 
 body.audio-playing .now #cover{transform:scale(calc(1 + var(--music-level) * .055));box-shadow:0 5px calc(15px + var(--music-level) * 22px) rgba(139,92,246,calc(.25 + var(--music-level) * .35))}
 body.audio-playing .controls #play{transform:scale(calc(1 + var(--music-level) * .045))}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}body.audio-playing .now #cover,body.audio-playing .controls #play{transform:none!important}}
+
+/* ===== Acabado 3D: misma paleta, más profundidad ===== */
+.hero,
+.home-song,
+.song,
+.playlist-row,
+.profile-card,
+.stats div,
+.empty,
+.home-empty,
+.card,
+.search-wrap,
+.player {
+  box-shadow: 0 10px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.055), inset 0 -1px 0 rgba(0,0,0,.22);
+}
+
+.hero {
+  background: linear-gradient(145deg,#303036 0%,#202026 45%,#151517 100%);
+  transform: perspective(900px) rotateX(.4deg);
+}
+
+.home-song,
+.song,
+.playlist-row,
+.stats div,
+.profile-card,
+.empty,
+.home-empty {
+  background: linear-gradient(145deg,rgba(48,48,54,.82),rgba(24,24,27,.96));
+  border-color: rgba(255,255,255,.055);
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease, background .22s ease;
+}
+
+.home-song:hover,
+.song:hover,
+.playlist-row:hover,
+.stats div:hover {
+  transform: perspective(700px) translateY(-3px) rotateX(1deg);
+  box-shadow: 0 14px 30px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.08);
+  border-color: rgba(167,139,250,.18);
+}
+
+.thumb,
+.playlist-icon,
+.profile-avatar,
+.now #cover {
+  background: linear-gradient(145deg,#3a3a42,#202026);
+  box-shadow: inset 2px 2px 5px rgba(255,255,255,.07), inset -3px -3px 7px rgba(0,0,0,.35), 0 7px 14px rgba(0,0,0,.22);
+}
+
+.controls #play,
+.hero-btn,
+.account button,
+.upload-btn {
+  background: linear-gradient(145deg,#ffffff,#dcdce2);
+  box-shadow: 0 7px 16px rgba(0,0,0,.28), inset 0 1px 1px rgba(255,255,255,.9), inset 0 -2px 3px rgba(0,0,0,.12);
+}
+
+.nav.active {
+  background: linear-gradient(145deg,#29292f,#1d1d21);
+  box-shadow: inset 1px 1px 3px rgba(255,255,255,.055), inset -2px -2px 4px rgba(0,0,0,.28), 0 5px 12px rgba(0,0,0,.2);
+}
+
+.search-wrap {
+  background: linear-gradient(145deg,#2c2c31,#202024);
+  box-shadow: inset 2px 2px 5px rgba(0,0,0,.2), inset -1px -1px 2px rgba(255,255,255,.035), 0 7px 18px rgba(0,0,0,.2);
+}
+
+.player {
+  background: linear-gradient(145deg,#202024,#121214);
+}
+
+@media (max-width:650px){
+  .hero{transform:none}
+  .home-song:hover,.song:hover,.playlist-row:hover,.stats div:hover{transform:translateY(-2px)}
+}
