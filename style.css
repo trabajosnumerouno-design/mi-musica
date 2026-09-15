@@ -109,3 +109,217 @@ body.audio-playing .controls #play{transform:scale(calc(1 + var(--music-level) *
   .hero{transform:none}
   .home-song:hover,.song:hover,.playlist-row:hover,.stats div:hover{transform:translateY(-2px)}
 }
+
+
+/* ===== Mi Música: profundidad 3D ===== */
+:root {
+  --mm-purple: #8b5cf6;
+  --mm-pink: #ec4899;
+  --mm-blue: #38bdf8;
+  --mm-surface: rgba(20, 18, 35, .72);
+  --mm-surface-2: rgba(34, 28, 55, .82);
+}
+
+/* Make the main visual layers look like floating surfaces */
+.sidebar,
+.hero,
+.card,
+.song-card,
+.playlist-card,
+.modal-content,
+.player,
+.player-bar,
+.search-box,
+.account-card,
+.profile-card {
+  background:
+    linear-gradient(145deg, rgba(139,92,246,.16), rgba(236,72,153,.08) 48%, rgba(56,189,248,.08)),
+    var(--mm-surface);
+  border: 1px solid rgba(167,139,250,.22);
+  box-shadow:
+    0 18px 40px rgba(0,0,0,.34),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -1px 0 rgba(0,0,0,.35);
+  backdrop-filter: blur(14px);
+}
+
+/* Give cards real perspective/depth on hover */
+.card,
+.song-card,
+.playlist-card {
+  transform: perspective(900px) translateZ(0) rotateX(0) rotateY(0);
+  transform-style: preserve-3d;
+  transition: transform .35s ease, box-shadow .35s ease, border-color .35s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before,
+.song-card::before,
+.playlist-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    125deg,
+    rgba(255,255,255,.12),
+    transparent 24%,
+    transparent 72%,
+    rgba(139,92,246,.12)
+  );
+  opacity: .7;
+}
+
+.card:hover,
+.song-card:hover,
+.playlist-card:hover {
+  transform: perspective(900px) translateY(-7px) rotateX(2deg) rotateY(-2deg);
+  border-color: rgba(236,72,153,.45);
+  box-shadow:
+    0 25px 55px rgba(0,0,0,.42),
+    0 0 28px rgba(139,92,246,.18),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+/* Buttons look physically raised */
+button,
+.btn,
+.nav-btn,
+.action-btn,
+.play-btn {
+  position: relative;
+  transform: translateY(0);
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+  box-shadow:
+    0 6px 0 rgba(50,35,90,.65),
+    0 12px 24px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.14);
+}
+
+button:hover,
+.btn:hover,
+.nav-btn:hover,
+.action-btn:hover,
+.play-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow:
+    0 8px 0 rgba(50,35,90,.65),
+    0 16px 28px rgba(0,0,0,.32),
+    0 0 18px rgba(139,92,246,.16);
+}
+
+button:active,
+.btn:active,
+.nav-btn:active,
+.action-btn:active,
+.play-btn:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 2px 0 rgba(50,35,90,.7),
+    0 5px 12px rgba(0,0,0,.28);
+}
+
+/* Purple/pink/blue volume on primary controls */
+.play-btn,
+.primary,
+.btn-primary,
+.upload-btn,
+.hero button {
+  background: linear-gradient(135deg, var(--mm-purple), var(--mm-pink));
+  color: white;
+  border: 1px solid rgba(255,255,255,.18);
+}
+
+/* Elevated cover tiles without making them larger */
+.cover,
+.cover-art,
+.song-cover,
+.album-cover,
+.track-cover {
+  box-shadow:
+    0 14px 24px rgba(0,0,0,.42),
+    8px 8px 0 rgba(88,65,150,.22),
+    12px 12px 0 rgba(236,72,153,.08);
+  transform: translateZ(18px);
+  transition: transform .35s ease, box-shadow .35s ease;
+}
+
+.song-card:hover .cover,
+.song-card:hover .cover-art,
+.song-card:hover .song-cover,
+.song-card:hover .album-cover,
+.song-card:hover .track-cover {
+  transform: translateZ(28px) rotateY(-4deg) rotateX(2deg);
+}
+
+/* 3D-looking floating section titles */
+.section-title,
+.view-title,
+.hero-title {
+  text-shadow:
+    0 2px 0 rgba(0,0,0,.55),
+    0 0 18px rgba(139,92,246,.18);
+}
+
+/* Make the player feel detached from the page */
+.player,
+.player-bar {
+  box-shadow:
+    0 -4px 0 rgba(139,92,246,.08),
+    0 18px 50px rgba(0,0,0,.5),
+    inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+/* Animated ambient glow, preserving the same palette */
+body::before {
+  background:
+    radial-gradient(circle at 15% 25%, rgba(139,92,246,.24), transparent 30%),
+    radial-gradient(circle at 85% 30%, rgba(236,72,153,.18), transparent 28%),
+    radial-gradient(circle at 55% 85%, rgba(56,189,248,.14), transparent 30%);
+  filter: blur(28px);
+  opacity: .9;
+  animation: mmAmbient 9s ease-in-out infinite alternate;
+}
+
+@keyframes mmAmbient {
+  0% { transform: scale(1) translate3d(-2%, 0, 0); }
+  50% { transform: scale(1.08) translate3d(2%, -1%, 0); }
+  100% { transform: scale(1.02) translate3d(-1%, 2%, 0); }
+}
+
+@media (max-width: 700px) {
+  .card:hover,
+  .song-card:hover,
+  .playlist-card:hover {
+    transform: translateY(-3px);
+  }
+  button,
+  .btn,
+  .nav-btn,
+  .action-btn,
+  .play-btn {
+    box-shadow: 0 4px 0 rgba(50,35,90,.65), 0 8px 18px rgba(0,0,0,.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .song-card,
+  .playlist-card,
+  button,
+  .btn,
+  .nav-btn,
+  .action-btn,
+  .play-btn,
+  .cover,
+  .cover-art,
+  .song-cover,
+  .album-cover,
+  .track-cover,
+  body::before {
+    animation: none !important;
+    transition: none !important;
+  }
+}
