@@ -6,3 +6,30 @@
 /* Inicio mejorado: secciones recientes y accesos rápidos */
 .home-section{margin:0 0 30px}.home-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.home-heading h2{margin:0;font-size:21px}.home-heading p{margin:5px 0 0;color:#777;font-size:13px}.home-library{margin-top:8px}.home-song{background:rgba(255,255,255,.015);border:1px solid transparent;transition:background .2s ease,transform .2s ease,border-color .2s ease}.home-song:hover{background:#1d1d20;border-color:#303035;transform:translateY(-1px)}.home-song .quick-play{opacity:.8}.home-song:hover .quick-play{opacity:1;background:#fff!important;color:#111!important}.home-empty{padding:18px;border:1px dashed #303035;border-radius:10px;color:#666;font-size:13px}.hero{box-shadow:0 18px 50px rgba(0,0,0,.18)}
 @media(max-width:650px){.home-heading h2{font-size:18px}.home-heading p{font-size:11px}.home-song .song-actions button:nth-child(2){display:block}.home-song .song-actions{gap:2px}.home-song{padding:8px}.home-section{margin-bottom:22px}}
+
+
+/* ===== Animaciones restauradas ===== */
+body{position:relative;overflow-x:hidden;--music-level:0}
+body::before,body::after{content:"";position:fixed;z-index:-1;pointer-events:none;border-radius:50%;filter:blur(70px);mix-blend-mode:screen;transition:transform .12s linear,opacity .12s linear}
+body::before{width:360px;height:360px;left:12%;top:8%;background:rgba(139,92,246,.22);opacity:.34;animation:ambientFloat 9s ease-in-out infinite alternate}
+body::after{width:420px;height:420px;right:4%;bottom:18%;background:rgba(236,72,153,.16);opacity:.34;animation:ambientFloat2 14s ease-in-out infinite alternate}
+main::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;background:linear-gradient(120deg,transparent 20%,rgba(167,139,250,.035) 45%,transparent 70%);background-size:220% 220%;animation:ambientSweep 6s ease-in-out infinite}
+@keyframes ambientFloat{0%{transform:translate3d(-30px,-10px,0) scale(1)}50%{transform:translate3d(80px,45px,0) scale(1.12)}100%{transform:translate3d(10px,100px,0) scale(.95)}}
+@keyframes ambientFloat2{0%{transform:translate3d(30px,30px,0) scale(.95)}50%{transform:translate3d(-70px,-40px,0) scale(1.1)}100%{transform:translate3d(-10px,50px,0) scale(1)}}
+@keyframes ambientSweep{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.hero{animation:heroIn .6s ease both}.hero-icon{animation:heroFloat 3s ease-in-out infinite}
+@keyframes heroIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes heroFloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-7px) rotate(2deg)}}
+.view-animate{animation:viewIn .3s cubic-bezier(.22,1,.36,1) both}
+@keyframes viewIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.song,.playlist-row{animation:listIn .28s ease both}
+@keyframes listIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.nav.active{transition:background .2s ease,box-shadow .2s ease,color .2s ease}.thumb,.playlist-icon{transition:transform .2s ease}.song:hover .thumb,.playlist-row:hover .playlist-icon{transform:scale(1.035)}
+.controls #play{transition:transform .16s ease,box-shadow .16s ease}.controls #play:hover{transform:scale(1.06);box-shadow:0 9px 25px rgba(139,92,246,.3)}
+body.audio-playing::before{animation-duration:4.5s;opacity:calc(.34 + var(--music-level) * .22);transform:scale(calc(1 + var(--music-level) * .18))}
+body.audio-playing::after{animation-duration:6s;opacity:calc(.34 + var(--music-level) * .24);transform:scale(calc(1 + var(--music-level) * .22))}
+body.audio-playing main::before{animation-duration:3.8s}
+body.audio-playing .player{box-shadow:0 -15px 40px rgba(0,0,0,.25),0 0 calc(8px + var(--music-level) * 28px) rgba(139,92,246,calc(.12 + var(--music-level) * .20))}
+body.audio-playing .now #cover{transform:scale(calc(1 + var(--music-level) * .055));box-shadow:0 5px calc(15px + var(--music-level) * 22px) rgba(139,92,246,calc(.25 + var(--music-level) * .35))}
+body.audio-playing .controls #play{transform:scale(calc(1 + var(--music-level) * .045))}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}body.audio-playing .now #cover,body.audio-playing .controls #play{transform:none!important}}
