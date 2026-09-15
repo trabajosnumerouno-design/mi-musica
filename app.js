@@ -5,64 +5,30 @@ const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHA
 const $=id=>document.getElementById(id);
 const input=$("fileInput"),uploadAudio=$("uploadAudio"),uploadCover=$("uploadCover"),uploadTitle=$("uploadTitle"),uploadArtist=$("uploadArtist"),coverPreview=$("coverPreview"),library=$("library"),audio=$("audio"),play=$("play"),search=$("search"),seek=$("seek"),current=$("current"),duration=$("duration"),nowTitle=$("nowTitle"),nowArtist=$("nowArtist"),nowCover=$("cover"),count=$("count"),statusBox=$("status");
 let songs=[],index=-1,favorites=new Set(),playlists=[],currentView="home",shuffleMode=false,repeatMode=false,selectedEditId=null,selectedPlaylistSongId=null;
-let audioCtx=null,analyser=null,audioSource=null,visualizerFrame=null;
+let recentIds=[];
 const fmt=s=>!isFinite(s)?"0:00":Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
 function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
 function status(msg,error=false){if(!statusBox)return;statusBox.textContent=msg;statusBox.classList.remove("hidden");statusBox.classList.toggle("error",error);if(!error)setTimeout(()=>statusBox.classList.add("hidden"),3200)}
 async function session(){return (await supabaseClient.auth.getSession()).data.session}
 function requireLogin(){if(!session()){alert("Primero inicia sesión para usar esta función.");return false}return true}
 function uploadEnabled(ok){const x=$("uploadLabel");if(x){x.style.opacity=ok?"1":".55";x.style.pointerEvents=ok?"auto":"none"}}
-async function loadSongs(){const s=await session();if(!s){songs=[];favorites.clear();playlists=[];renderCurrent();updateStats();uploadEnabled(false);return}uploadEnabled(true);const r=await supabaseClient.from("songs").select("*").order("created_at",{ascending:false});if(r.error){status("No se pudo cargar la biblioteca: "+r.error.message,true);return}songs=r.data||[];await Promise.all([loadFavorites(),loadPlaylists()]);renderCurrent();updateStats()}
+async function loadSongs(){const s=await session();if(!s){songs=[];favorites.clear();playlists=[];recentIds=[];renderCurrent();updateStats();uploadEnabled(false);return}uploadEnabled(true);const r=await supabaseClient.from("songs").select("*").order("created_at",{ascending:false});if(r.error){status("No se pudo cargar la biblioteca: "+r.error.message,true);return}songs=r.data||[];await Promise.all([loadFavorites(),loadPlaylists(),loadRecentIds()]);renderCurrent();updateStats();if(currentView==="home")renderHomeSections()}
 async function loadFavorites(){const s=await session();if(!s)return;const r=await supabaseClient.from("favorites").select("song_id");favorites=new Set((r.data||[]).map(x=>x.song_id))}
 async function loadPlaylists(){const s=await session();if(!s)return;const r=await supabaseClient.from("playlists").select("*").order("created_at",{ascending:false});if(!r.error)playlists=r.data||[]}
 async function coverUrl(song){if(!song?.cover_path)return null;const r=await supabaseClient.storage.from(BUCKET).createSignedUrl(song.cover_path,3600);return r.error?null:r.data?.signedUrl||null}
+
+async function loadRecentIds(){const s=await session();if(!s){recentIds=[];return}try{recentIds=JSON.parse(localStorage.getItem(`mi-musica-recent-${s.user.id}`)||"[]");if(!Array.isArray(recentIds))recentIds=[]}catch{recentIds=[]}}
+async function saveRecentSong(id){const s=await session();if(!s)return;recentIds=[id,...recentIds.filter(x=>x!==id)].slice(0,8);localStorage.setItem(`mi-musica-recent-${s.user.id}`,JSON.stringify(recentIds));renderHomeSections()}
+function miniSongMarkup(s){return `<div class="song home-song"><div class="thumb" id="home-thumb-${s.id}">🎵</div><div class="song-info"><div class="song-title">${esc(s.title)}</div><div class="song-meta">${esc(s.artist||"Mi biblioteca")}</div></div><div class="song-actions"><button class="quick-play" title="Reproducir ahora" onclick="playSongById('${s.id}')">▶</button><button title="Favorito" onclick="toggleFavorite('${s.id}')">${favorites.has(s.id)?"❤️":"🤍"}</button></div></div>`}
+async function renderHomeList(elId,list){const el=$(elId);if(!el)return;if(!list.length){el.innerHTML='<div class="home-empty">Todavía no hay canciones para mostrar aquí.</div>';return}el.innerHTML=list.map(miniSongMarkup).join("");await Promise.all(list.map(async s=>{const u=await coverUrl(s);if(u){const e=$("home-thumb-"+s.id);if(e)e.innerHTML=`<img src="${u}" alt="Portada">`}}))}
+async function renderHomeSections(){await loadRecentIds();const recent=recentIds.map(id=>songs.find(s=>s.id===id)).filter(Boolean).slice(0,5);const newest=songs.slice(0,5);await Promise.all([renderHomeList("recentLibrary",recent),renderHomeList("newLibrary",newest)]);const rs=$("recentSection"),ns=$("newSection");if(rs)rs.classList.toggle("hidden",songs.length===0);if(ns)ns.classList.toggle("hidden",songs.length===0)}
 function filterSongs(v){const q=String(v||"").trim().toLowerCase();return q?songs.filter(s=>(s.title||"").toLowerCase().includes(q)||(s.artist||"").toLowerCase().includes(q)):songs}
 async function renderSongs(list,title="Biblioteca",subtitle="Tus canciones guardadas"){count.textContent=`${list.length} ${list.length===1?"canción":"canciones"}`;$("viewTitle").textContent=title;$("viewSubtitle").textContent=subtitle;$("newPlaylistBtn").classList.add("hidden");if(!list.length){library.innerHTML=`<div class="empty">${title==="Resultados de búsqueda"?"No encontramos canciones con esa búsqueda.":"No hay canciones para mostrar."}</div>`;return}library.innerHTML=list.map(s=>`<div class="song"><div class="thumb" id="thumb-${s.id}">🎵</div><div class="song-info"><div class="song-title">${esc(s.title)}</div><div class="song-meta">${esc(s.artist||"Mi biblioteca")}</div></div><div class="song-actions"><button title="Reproducir" onclick="playSongById('${s.id}')">▶</button><button title="Favorito" onclick="toggleFavorite('${s.id}')">${favorites.has(s.id)?"❤️":"🤍"}</button><button title="Editar" onclick="editSong('${s.id}')">✏️</button><button title="Añadir a playlist" onclick="addSongToPlaylist('${s.id}')">📋</button><button title="Descargar" onclick="downloadSongById('${s.id}')">⬇</button><button title="Eliminar" onclick="deleteSong('${s.id}')">🗑️</button></div></div>`).join("");await Promise.all(list.map(async s=>{const u=await coverUrl(s);if(u){const e=$("thumb-"+s.id);if(e)e.innerHTML=`<img src="${u}" alt="Portada">`}}))}
 async function renderFavorites(){await loadFavorites();const list=songs.filter(s=>favorites.has(s.id));await renderSongs(list,"Favoritos","Tus canciones marcadas con ❤️")}
 async function renderPlaylists(){$("viewTitle").textContent="Mis playlists";$("viewSubtitle").textContent="Organiza tus canciones como quieras";$("newPlaylistBtn").classList.remove("hidden");count.textContent=`${playlists.length} ${playlists.length===1?"playlist":"playlists"}`;if(!playlists.length){library.innerHTML='<div class="empty">Aún no tienes playlists.<br><br><button class="primary" style="border:0;border-radius:8px;padding:10px 15px;cursor:pointer" onclick="openPlaylistModal()">＋ Crear mi primera playlist</button></div>';return}library.innerHTML=playlists.map(p=>`<div class="playlist-row"><div class="playlist-icon">📚</div><div><strong>${esc(p.name)}</strong><div class="song-meta">Playlist personal</div></div><button onclick="openPlaylist('${p.id}')">Abrir</button><button onclick="deletePlaylist('${p.id}')">🗑️</button></div>`).join("")}
 async function openPlaylist(id){const p=playlists.find(x=>x.id===id);if(!p)return;const r=await supabaseClient.from("playlist_songs").select("song_id").eq("playlist_id",id);const ids=(r.data||[]).map(x=>x.song_id);const list=ids.map(x=>songs.find(s=>s.id===x)).filter(Boolean);$("viewTitle").textContent=p.name;$("viewSubtitle").textContent="Canciones de esta playlist";$("newPlaylistBtn").classList.remove("hidden");count.textContent=`${list.length} ${list.length===1?"canción":"canciones"}`;if(!list.length){library.innerHTML='<div class="empty">Esta playlist todavía está vacía.</div>';return}library.innerHTML=list.map(s=>`<div class="song"><div class="thumb">🎵</div><div class="song-info"><div class="song-title">${esc(s.title)}</div><div class="song-meta">${esc(s.artist||"Mi biblioteca")}</div></div><div class="song-actions"><button onclick="playSongById('${s.id}')">▶</button><button onclick="toggleFavorite('${s.id}')">${favorites.has(s.id)?"❤️":"🤍"}</button><button onclick="removeFromPlaylist('${id}','${s.id}')">✖</button></div></div>`).join("")}
 function renderCurrent(){if(currentView==="favorites")renderFavorites();else if(currentView==="playlists")renderPlaylists();else if(currentView==="search")renderSongs(filterSongs(search.value),"Resultados de búsqueda","Busca por título o artista");else renderSongs(songs,"Biblioteca","Tus canciones guardadas")}
-function startMusicVisualizer(){
-  document.body.classList.add("audio-playing");
-  try{
-    if(!audioCtx){
-      audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-      analyser=audioCtx.createAnalyser();
-      analyser.fftSize=64;
-      analyser.smoothingTimeConstant=.78;
-      audioSource=audioCtx.createMediaElementSource(audio);
-      audioSource.connect(analyser);
-      analyser.connect(audioCtx.destination);
-    }
-    if(audioCtx.state==="suspended") audioCtx.resume();
-  }catch(e){
-    analyser=null;
-  }
-  if(visualizerFrame) cancelAnimationFrame(visualizerFrame);
-  const data=analyser?new Uint8Array(analyser.frequencyBinCount):null;
-  const tick=()=>{
-    if(audio.paused){
-      document.body.classList.remove("audio-playing");
-      document.body.style.setProperty("--music-level","0");
-      return;
-    }
-    let level=.22;
-    if(analyser&&data){
-      analyser.getByteFrequencyData(data);
-      let sum=0;
-      for(let i=0;i<data.length;i++) sum+=data[i];
-      level=Math.min(1,sum/(data.length*255)*2.4);
-    }else{
-      // Fallback: synchronized pulse when browser blocks audio analysis.
-      level=.22+.18*(.5+.5*Math.sin(audio.currentTime*7));
-    }
-    document.body.style.setProperty("--music-level",level.toFixed(3));
-    visualizerFrame=requestAnimationFrame(tick);
-  };
-  tick();
-}
-
-async function playSongById(id){const i=songs.findIndex(s=>s.id===id);if(i<0)return;index=i;const song=songs[i];const r=await supabaseClient.storage.from(BUCKET).createSignedUrl(song.storage_path,3600);if(r.error){status("No se pudo reproducir: "+r.error.message,true);return}audio.crossOrigin="anonymous";audio.src=r.data.signedUrl;nowTitle.textContent=song.title;nowArtist.textContent=song.artist||"Mi biblioteca";const u=await coverUrl(song);nowCover.innerHTML=u?`<img src="${u}" alt="Portada">`:"🎵";try{await audio.play();startMusicVisualizer()}catch(e){status("Pulsa ▶ para iniciar la reproducción.")}if(play)play.textContent="⏸"}
+async function playSongById(id){const i=songs.findIndex(s=>s.id===id);if(i<0)return;index=i;const song=songs[i];saveRecentSong(id);const r=await supabaseClient.storage.from(BUCKET).createSignedUrl(song.storage_path,3600);if(r.error){status("No se pudo reproducir: "+r.error.message,true);return}audio.src=r.data.signedUrl;nowTitle.textContent=song.title;nowArtist.textContent=song.artist||"Mi biblioteca";const u=await coverUrl(song);nowCover.innerHTML=u?`<img src="${u}" alt="Portada">`:"🎵";try{await audio.play()}catch(e){status("Pulsa ▶ para iniciar la reproducción.")}if(play)play.textContent="⏸"}
 window.playSongById=playSongById;
 async function downloadSongById(id){if(!requireLogin())return;const s=songs.find(x=>x.id===id);if(!s)return;const r=await supabaseClient.storage.from(BUCKET).createSignedUrl(s.storage_path,300,{download:s.file_name||true});if(r.error){status("No se pudo preparar la descarga: "+r.error.message,true);return}const a=document.createElement("a");a.href=r.data.signedUrl;a.download=s.file_name||s.title;a.target="_blank";document.body.appendChild(a);a.click();a.remove()}
 window.downloadSongById=downloadSongById;
@@ -121,7 +87,7 @@ $("confirmUpload").onclick=async()=>{
 };
 
 function setNav(view){document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.view===view))}
-document.querySelectorAll(".nav").forEach(b=>b.onclick=async()=>{const v=b.dataset.view;currentView=v;setNav(v);const targets=[$("homeView"),$("contentView"),$("profileView")];targets.forEach(el=>el&&el.classList.remove("view-animate"));void document.body.offsetWidth;$("homeView").classList.toggle("hidden",v!=="home");$("contentView").classList.toggle("hidden",v==="profile");$("profileView").classList.toggle("hidden",v!=="profile");const active=v==="home"?$("homeView"):v==="profile"?$("profileView"):$("contentView");if(active){void active.offsetWidth;active.classList.add("view-animate")}if(v==="home")renderCurrent();else if(v==="search"){search.focus();renderSongs(filterSongs(search.value),"Resultados de búsqueda","Busca por título o artista")}else if(v==="favorites")await renderFavorites();else if(v==="playlists")await renderPlaylists();else if(v==="profile")updateProfile()});
+document.querySelectorAll(".nav").forEach(b=>b.onclick=async()=>{const v=b.dataset.view;currentView=v;setNav(v);$("homeView").classList.toggle("hidden",v!=="home");$("contentView").classList.toggle("hidden",v==="profile");$("profileView").classList.toggle("hidden",v!=="profile");if(v==="home")renderCurrent();else if(v==="search"){search.focus();renderSongs(filterSongs(search.value),"Resultados de búsqueda","Busca por título o artista")}else if(v==="favorites")await renderFavorites();else if(v==="playlists")await renderPlaylists();else if(v==="profile")updateProfile()});
 async function updateStats(){$("statSongs").textContent=songs.length;$("statFavs").textContent=favorites.size;$("statPlaylists").textContent=playlists.length}
 async function updateProfile(){const s=await session();$("profileEmail").textContent=s?.user?.email||"Invitado";$("profileState").textContent=s?"Cuenta activa. Tu biblioteca es privada.":"Inicia sesión para usar tu biblioteca.";$("profileLogin").classList.toggle("hidden",!!s);$("profileLogout").classList.toggle("hidden",!s);updateStats()}
 async function updateAccount(){const s=await session();$("userEmail").textContent=s?.user?.email||"Invitado";$("accountBtn").textContent=s?"Cerrar sesión":"Iniciar sesión";$("sideAccount").textContent=s?"Cerrar sesión":"Iniciar sesión";$("profileEmail").textContent=s?.user?.email||"Invitado";uploadEnabled(!!s);updateProfile()}
@@ -131,6 +97,6 @@ let signUpMode=false;$("switchAuth").onclick=()=>{signUpMode=!signUpMode;$("auth
 $("authSubmit").onclick=async()=>{const email=$("email").value.trim(),password=$("password").value;if(!email||!password||password.length<6){alert("Escribe un correo y una contraseña de al menos 6 caracteres.");return}const r=signUpMode?await supabaseClient.auth.signUp({email,password}):await supabaseClient.auth.signInWithPassword({email,password});if(r.error){alert(r.error.message);return}if(signUpMode&&!r.data.session)alert("Cuenta creada. Revisa tu correo si Supabase solicita confirmación.");$("authPanel").classList.add("hidden");await updateAccount();await loadSongs()};
 supabaseClient.auth.onAuthStateChange(()=>{setTimeout(async()=>{await updateAccount();await loadSongs()},0)});
 play.onclick=async()=>{if(index<0&&songs.length)await playSongById(songs[0].id);else if(audio.paused)await audio.play();else audio.pause()};$("prev").onclick=async()=>{if(!songs.length)return;await playSongById(songs[(index-1+songs.length)%songs.length].id)};$("next").onclick=async()=>{if(!songs.length)return;if(shuffleMode&&songs.length>1){let n=index;while(n===index)n=Math.floor(Math.random()*songs.length);await playSongById(songs[n].id)}else await playSongById(songs[(index+1)%songs.length].id)};
-audio.ontimeupdate=()=>{seek.value=audio.duration?(audio.currentTime/audio.duration)*100:0;current.textContent=fmt(audio.currentTime);duration.textContent=fmt(audio.duration)};audio.onplay=()=>{play.textContent="⏸";startMusicVisualizer()};audio.onpause=()=>{play.textContent="▶";document.body.classList.remove("audio-playing");document.body.style.setProperty("--music-level","0")};audio.onended=()=>{if(!repeatMode)$("next").click()};seek.oninput=()=>{if(audio.duration)audio.currentTime=seek.value/100*audio.duration};
+audio.ontimeupdate=()=>{seek.value=audio.duration?(audio.currentTime/audio.duration)*100:0;current.textContent=fmt(audio.currentTime);duration.textContent=fmt(audio.duration)};audio.onplay=()=>play.textContent="⏸";audio.onpause=()=>play.textContent="▶";audio.onended=()=>{if(!repeatMode)$("next").click()};seek.oninput=()=>{if(audio.duration)audio.currentTime=seek.value/100*audio.duration};
 $("shuffle").onclick=()=>{shuffleMode=!shuffleMode;$("shuffle").classList.toggle("active",shuffleMode);status(shuffleMode?"Aleatorio activado.":"Aleatorio desactivado.")};$("repeat").onclick=()=>{repeatMode=!repeatMode;audio.loop=repeatMode;$("repeat").classList.toggle("active",repeatMode);status(repeatMode?"Repetición activada.":"Repetición desactivada.")};$("mute").onclick=()=>{audio.muted=!audio.muted;$("mute").textContent=audio.muted?"🔇":"🔊"};$("volume").oninput=e=>{audio.volume=Number(e.target.value);audio.muted=audio.volume===0;$("mute").textContent=audio.muted?"🔇":"🔊"};audio.volume=1;
 (async()=>{await updateAccount();await loadSongs()})();

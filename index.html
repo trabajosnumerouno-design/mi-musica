@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#101010"><meta name="description" content="Mi Música: biblioteca musical personal.">
-<title>Mi Música</title><link rel="stylesheet" href="style.css?v=20260915b">
+<title>Mi Música</title><link rel="stylesheet" href="style.css?v=20260916">
 </head>
 <body>
 <aside class="sidebar">
@@ -31,6 +31,8 @@
 <div id="uploadModal" class="modal hidden"><div class="card upload-card"><button id="closeUpload" class="close">✕</button><h2>Subir música</h2><p>Agrega tu canción y, si quieres, una portada.</p><label class="field-label">🎵 Archivo de música<input id="uploadAudio" type="file" accept="audio/*"></label><label class="field-label">🖼️ Portada<input id="uploadCover" type="file" accept="image/*"></label><div id="coverPreview" class="cover-preview hidden"></div><input id="uploadTitle" type="text" maxlength="120" placeholder="Título de la canción"><input id="uploadArtist" type="text" maxlength="120" placeholder="Artista"><div class="upload-actions"><button id="cancelUpload" class="secondary">Cancelar</button><button id="confirmUpload" class="primary">⬆️ Subir</button></div><div id="uploadProgress" class="status hidden"></div></div></div>
 <section id="homeView" class="view active-view">
   <section class="hero"><div><p>REPOSITORIO MUSICAL</p><h1>Tu música,<br>en un solo lugar.</h1><p>Guarda, organiza y reproduce tu biblioteca desde cualquier dispositivo.</p><button class="hero-btn" id="heroUpload">⬆️ Subir música</button></div><div class="hero-icon">🎧</div></section>
+  <section class="home-section" id="recentSection"><div class="home-heading"><div><h2>🕘 Escuchado recientemente</h2><p>Vuelve rápidamente a las canciones que acabas de reproducir.</p></div></div><div id="recentLibrary" class="library home-library"></div></section>
+  <section class="home-section" id="newSection"><div class="home-heading"><div><h2>🆕 Agregadas recientemente</h2><p>Las últimas canciones que añadiste a tu biblioteca.</p></div></div><div id="newLibrary" class="library home-library"></div></section>
 </section>
 <section id="contentView">
   <div class="section-title"><div><h2 id="viewTitle">Biblioteca</h2><p id="viewSubtitle">Tus canciones guardadas</p></div><span id="count">0 canciones</span><button id="newPlaylistBtn" class="secondary small-btn hidden">＋ Nueva playlist</button></div>
@@ -49,5 +51,5 @@
   <div class="volume-control"><button id="mute" title="Silenciar">🔊</button><input id="volume" type="range" min="0" max="1" step="0.01" value="1" title="Volumen"></div>
 </footer>
 <audio id="audio" preload="metadata"></audio>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=20260915b"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=20260916"></script>
 </body></html>
