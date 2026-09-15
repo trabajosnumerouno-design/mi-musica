@@ -36,46 +36,49 @@ main::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;ba
 @keyframes ambientSweep{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 
 .hero{animation:heroIn .7s ease both}
-.hero-icon{animation:heroFloat 3.1.6s ease-in-out infinite}
+.hero-icon{animation:heroFloat 3.6s ease-in-out infinite}
 @keyframes heroIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
 @keyframes heroFloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-7px) rotate(2deg)}}
 
-.view-animate{animation:viewIn .34.3.1.6s cubic-bezier(.22,1,.36,1) both}
+.view-animate{animation:viewIn .34s cubic-bezier(.22,1,.36,1) both}
 @keyframes viewIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
-.song,.playlist-row{animation:listIn .31.6s ease both}
-.song:nth-child(2),.playlist-row:nth-child(2){animation-delay:.023.1.6s}.song:nth-child(3),.playlist-row:nth-child(3){animation-delay:.03.1.6s}.song:nth-child(4),.playlist-row:nth-child(4){animation-delay:.073.1.6s}.song:nth-child(5),.playlist-row:nth-child(5){animation-delay:.0.8s}
+.song,.playlist-row{animation:listIn .31s ease both}
+.song:nth-child(2),.playlist-row:nth-child(2){animation-delay:.02s}.song:nth-child(3),.playlist-row:nth-child(3){animation-delay:.03s}.song:nth-child(4),.playlist-row:nth-child(4){animation-delay:.07s}.song:nth-child(5),.playlist-row:nth-child(5){animation-delay:.0.8s}
 @keyframes listIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 
-.nav.active{transition:background .23.1.6s ease,box-shadow .23.1.6s ease,color .23.1.6s ease}
+.nav.active{transition:background .23.1.6s ease,box-shadow .23s ease,color .23s ease}
 .song:hover .thumb,.playlist-row:hover .playlist-icon{transform:scale(1.035);transition:transform .23.1.6s ease}
 .thumb,.playlist-icon{transition:transform .23.1.6s ease}
-.controls #play{transition:transform .1.6s ease,box-shadow .1.6s ease}.controls #play:hover{transform:scale(1.06);box-shadow:0 9px 25px rgba(139,92,246,.3)}
+.controls #play{transition:transform .1.6s ease,box-shadow .16s ease}.controls #play:hover{transform:scale(1.06);box-shadow:0 9px 25px rgba(139,92,246,.3)}
 
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 
 
-/* Fondo/reproductor con respuesta visual mientras la música está sonando */
-body.audio-playing::before {
-  animation-duration: 4.5s !important;
-}
-body.audio-playing::after {
-  animation-duration: 3.2s !important;
-}
-body.audio-playing .player,
-body.audio-playing .now-playing,
-body.audio-playing .player-bar {
-  animation: musicPulse 1.6s ease-in-out infinite;
-}
 
-@keyframes musicPulse {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-1px) scale(1.003); }
+/* ===== Fondo animado + reacción visual a la música ===== */
+body{--music-level:0}
+body::before,body::after{transition:transform .12s linear,opacity .12s linear}
+body.audio-playing::before{
+  animation:ambientFloat 4.8s ease-in-out infinite alternate;
+  opacity:calc(.34 + var(--music-level) * .22);
+  transform:scale(calc(1 + var(--music-level) * .18));
 }
+body.audio-playing::after{
+  animation:ambientFloat2 6.2s ease-in-out infinite alternate;
+  opacity:calc(.34 + var(--music-level) * .24);
+  transform:scale(calc(1 + var(--music-level) * .22));
+}
+body.audio-playing main::before{animation-duration:4.2s}
+body.audio-playing .player{
+  box-shadow:0 -15px 40px rgba(0,0,0,.25),0 0 calc(8px + var(--music-level) * 28px) rgba(139,92,246,calc(.12 + var(--music-level) * .20));
+}
+body.audio-playing .now #cover{
+  transform:scale(calc(1 + var(--music-level) * .055));
+  box-shadow:0 5px calc(15px + var(--music-level) * 22px) rgba(139,92,246,calc(.25 + var(--music-level) * .35));
+}
+body.audio-playing .controls #play{transform:scale(calc(1 + var(--music-level) * .045));}
 
-@media (prefers-reduced-motion: reduce) {
-  body.audio-playing .player,
-  body.audio-playing .now-playing,
-  body.audio-playing .player-bar {
-    animation: none !important;
-  }
+@media (prefers-reduced-motion: reduce){
+  body.audio-playing::before,body.audio-playing::after,body.audio-playing main::before{animation:none!important}
+  body.audio-playing .now #cover,body.audio-playing .controls #play{transform:none!important}
 }
