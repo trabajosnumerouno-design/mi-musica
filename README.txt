@@ -1,9 +1,20 @@
-MI MÚSICA - VERSIÓN CON PORTADAS
+MI MÚSICA - VERSIÓN COMPLETA V2
 
-1. Reemplaza index.html, app.js y style.css en GitHub por estos archivos.
-2. En Supabase > SQL Editor > New query, ejecuta TODO supabase_setup.sql.
-3. La portada es opcional: elige una imagen antes de subir el audio.
-4. La portada se guarda en el mismo bucket privado y respeta las políticas por usuario.
-5. No subas el ZIP a GitHub; sube los archivos extraídos.
+Incluye:
+- Modo sin conexión con indicador 🟢 Sin conexión.
+- Filtro "Solo descargadas".
+- Botón visible para eliminar canciones 🗑️.
+- Eliminación también del archivo offline.
+- Reproductor con aleatorio 🔀 y repetir 🔁.
+- Recuerda la última canción seleccionada sin reproducirla automáticamente.
+- Playlists: crear, abrir, reproducir, renombrar, eliminar y quitar canciones.
+- Cuenta solamente en Mi perfil.
+- Navegación por secciones.
 
-IMPORTANTE: usa únicamente música e imágenes que tengas derecho o autorización para compartir.
+Para Android:
+1. Reemplaza index.html, app.js y style.css en C:\MiMusicaAndroid\www
+2. En PowerShell ejecuta: npx cap copy android
+3. Abre Android Studio y ejecuta el proyecto android.
+
+No se modifica Supabase.
+Usa solamente música y portadas que tengas derecho o autorización para usar.
